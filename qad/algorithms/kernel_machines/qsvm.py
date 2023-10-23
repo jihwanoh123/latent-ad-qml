@@ -7,7 +7,12 @@ from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.circuit import ParameterVector
 from qiskit.providers import Backend
+#Deprecated
 from qiskit.providers.ibmq import IBMQBackend
+#from qiskit_ibm_provider import IBMProvider
+###
+from qiskit_ionq import IonQProvider
+###
 from qiskit.visualization import plot_circuit_layout
 import matplotlib.pyplot as plt
 from qiskit_machine_learning.kernels import QuantumKernel
@@ -66,7 +71,10 @@ class QSVM(SVC):
 
         self._backend_config = hpars["config"]
         self._quantum_instance, self._backend = bc.configure_quantum_instance(
+            #####
             ibmq_api_config=hpars["ibmq_api_config"],
+            #ionq_api_config=hpars["ionq_api_config"],
+            #####
             run_type=hpars["run_type"],
             backend_name=hpars["backend_name"],
             **self._backend_config,
@@ -84,7 +92,11 @@ class QSVM(SVC):
         return self._kernel_matrix_train
 
     @property
-    def backend(self) -> Union[Backend, IBMQBackend, None]:
+    def backend(self) -> Union[Backend,
+                               ####
+                               IBMQBackend,#IonQBackend,
+                               ####
+                               None]:
         """Returns the backend that the `QSVM` runs on. If it's an ideal
         simulations, it returns `None`.
         """
@@ -212,7 +224,9 @@ class QSVM(SVC):
             y_vec=self._train_data,
         )
         return super().decision_function(test_kernel_matrix)
-
+    
+    ###Transpilation compatibility
+    
     def get_transpiled_kernel_circuit(
         self,
         path: str,

@@ -1,14 +1,22 @@
 from time import perf_counter
 from typing import Tuple, Callable
+#######
 from qiskit import IBMQ
+from qiskit_ionq import IonQProvider
+#######
 from qiskit import Aer
 from qiskit.utils import QuantumInstance
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
+#Deprecated
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.backends import AerSimulator
+######
 from qiskit.providers import Backend
+#######
+#Deprecated
 from qiskit.providers.ibmq import IBMQBackend
-
+#from qiskit_ibm_provider import IBMProvider
+#######
 from qad.algorithms.kernel_machines.terminal_enhancer import tcols
 
 
@@ -21,16 +29,28 @@ def ideal_simulation(**kwargs) -> QuantumInstance:
     :class:`qiskit.utils.QuantumInstance`
         Object used for the execution of quantum kernel machines using :class:`qiskit`.
     """
+    
+    provider = IonQProvider("27pEbHsUIEAy6WtHdddSLF8UjtwlA4fR")
     print(tcols.BOLD + "\nInitialising ideal (statevector) simulation." + tcols.ENDC)
     quantum_instance = QuantumInstance(
-        backend=Aer.get_backend("aer_simulator_statevector"), **kwargs
+        ########
+        backend=provider.get_backend("ionq_simulator"),
+        #backend=Aer.get_backend("aer_simulator_statevector"),
+        ########
+        **kwargs
     )
     # None needed to specify that no backend device is loaded for ideal sim.
     return quantum_instance, None
-
+####
+#Need to modify later when we have IonQ machine access
+#####
 
 def noisy_simulation(
-    ibmq_api_config: dict, backend_name: str, **kwargs
+    ibmq_api_config: dict,
+    #####
+    #ionq_api_config: dict,
+    #####
+    backend_name: str, **kwargs
 ) -> Tuple[QuantumInstance, Backend]:
     """Prepare a :class:`qiskit.utils.QuantumInstance` object for simulation with noise based on the
     real quantum computer calibration data.
@@ -38,9 +58,9 @@ def noisy_simulation(
     Parameters
     ----------
     ibmq_api_config : dict
-        Configuration file with API token and private configuration for IBMQ connection.
+        Configuration file with API token and private configuration for IBMQ(IonQ) connection.
     backend_name : str
-        Name of the quantum computer, form ibm(q)_<city_name>.
+        Name of the quantum computer, form ib(on)m(q)_<city_name>.
     kwargs:
         Keyword arguments for the :class:`qiskit.utils.QuantumInstance`.
 
@@ -55,14 +75,19 @@ def noisy_simulation(
     """
     print(tcols.BOLD + "\nInitialising noisy simulation." + tcols.ENDC)
     quantum_computer_backend = connect_quantum_computer(ibmq_api_config, backend_name)
+    #quantum_computer_backend = connect_quantum_computer(ionq_api_config, backend_name)
     backend = AerSimulator.from_backend(quantum_computer_backend)
-
+    #Is AerSimulator compatible with IonQ backend?
     quantum_instance = QuantumInstance(backend=backend, **kwargs)
     return quantum_instance, quantum_computer_backend
 
-
-def connect_quantum_computer(ibmq_api_config: dict, backend_name: str) -> IBMQBackend:
-    """Load a IBMQ-experience backend using a token (IBM-CERN hub credentials)
+####
+# Can we use IBMQ for now to just run the code?
+# 
+####
+def connect_quantum_computer(ibmq_api_config: dict,#ionq_api_config: dict,
+                             backend_name: str) -> IBMQBackend:#IonQBackEnd:
+    """Load a IBMQ/IonQ-experience backend using a token (IBM/IonQ-CERN hub credentials)
     This backend (i.e. quantum computer) can either be used for running on
     the real device or to load the calibration (noise/error info). With the
     latter data we can do a simulation of the hardware behaviour.
@@ -71,6 +96,12 @@ def connect_quantum_computer(ibmq_api_config: dict, backend_name: str) -> IBMQBa
     ----------
     ibmq_api_config : dict
         Configuration file for the `IBMQ` API token and provider information.
+
+        or
+        
+    ionq_api_config : dict
+        Configuration file for the `IonQ` API token and provider information.
+        
     backend_name : str
         Quantum computer name
 
@@ -79,19 +110,27 @@ def connect_quantum_computer(ibmq_api_config: dict, backend_name: str) -> IBMQBa
     :class:`qiskit.providers.ibmq.IBMQBackend`
         Backend object used for executing the quantum models in :class:`qiskit`.
 
+        or
+        
+    :class:`qiskit.providers.ionq.IonQBackend`
+        Backend object used for executing the quantum models in :class:`qiskit`.
     Raises
     ------
     AttributeError
         When a quantum computer name that doesn't exist is given.
     """
     print("Enabling IBMQ account using provided token...", end="")
+    ####
+    #print("Enabling IonQ account using provided token...", end="")
     IBMQ.enable_account(ibmq_api_config["token"])
+    #provider = IonQProvider(ionq_api_config["token"])
     provider = IBMQ.get_provider(
         hub=ibmq_api_config["hub"],
         group=ibmq_api_config["group"],
         project=ibmq_api_config["project"],
     )
     try:
+        #quantum_computer_backend = provider.get_backend("ionq_qpu.harmony")
         quantum_computer_backend = provider.get_backend(backend_name)
     except QiskitBackendNotFoundError:
         raise AttributeError(
@@ -102,7 +141,8 @@ def connect_quantum_computer(ibmq_api_config: dict, backend_name: str) -> IBMQBa
 
 
 def configure_quantum_instance(
-    ibmq_api_config: dict, run_type: str, backend_name: str = None, **kwargs
+    ibmq_api_config: dict, #ionq_api_config: dict,
+    run_type: str, backend_name: str = None, **kwargs
 ) -> Tuple[QuantumInstance, Backend]:
     """Gives the QuantumInstance object required for running the Quantum kernel.
     The quantum instance can be configured for a simulation of a backend with
@@ -113,6 +153,8 @@ def configure_quantum_instance(
     ----------
     ibmq_api_config : dict
         Configuration file for the IBMQ API token and provider information.
+    ionq_api_config : dict
+        Configuration file for the IonQ API token and provider information.
     run_type : str
         Takes values the possible values {ideal,noisy, hardware} to specify
         what type of backend will be provided to the quantum instance object.
@@ -143,10 +185,13 @@ def configure_quantum_instance(
     switcher = {
         "ideal": lambda: ideal_simulation(**kwargs),
         "noisy": lambda: noisy_simulation(
-            ibmq_api_config=ibmq_api_config, backend_name=backend_name, **kwargs
+            ibmq_api_config=ibmq_api_config, #ionq_api_config=ionq_api_config,
+            backend_name=backend_name, **kwargs
         ),
         "hardware": lambda: hardware_run(
-            backend_name=backend_name, ibmq_api_config=ibmq_api_config, **kwargs
+            backend_name=backend_name,
+            ibmq_api_config=ibmq_api_config,#ionq_api_config=ionq_api_config,
+            **kwargs
         ),
     }
 
@@ -165,7 +210,7 @@ def get_backend_configuration(backend: Backend) -> Tuple:
     Parameters
     ----------
     backend : :class:`qiskit.providers.Backend`
-        IBMQBackend object representing a a real quantum computer.
+        IBMQ/IonQ Backend object representing a a real quantum computer.
 
     Returns
     -------
@@ -186,10 +231,11 @@ def get_backend_configuration(backend: Backend) -> Tuple:
 
 
 def hardware_run(
-    backend_name: str, ibmq_api_config: dict, **kwargs
+    backend_name: str, ibmq_api_config: dict, #ionq_api_config: dict,
+    **kwargs
 ) -> Tuple[QuantumInstance, Backend]:
     """Configure :class:`qiskit.utils.QuantumInstance` based on a quantum computer. The circuits will
-    be sent as jobs to be exececuted on the specified device in `IBMQ`.
+    be sent as jobs to be exececuted on the specified device in `IBMQ`/'IonQ'.
 
     Parameters
     ----------
@@ -197,6 +243,8 @@ def hardware_run(
         Name of the quantum computer, form ibmq_<city_name>.
     ibmq_api_config : dict
         Configuration file for the `IBMQ` API token and provider information.
+    ionq_api_config : dict
+        Configuration file for the `IonQ` API token and provider information.
 
     Returns
     -------
@@ -208,6 +256,7 @@ def hardware_run(
     """
     print(tcols.BOLD + "\nInitialising run on a quantum computer." + tcols.ENDC)
     quantum_computer_backend = connect_quantum_computer(ibmq_api_config, backend_name)
+    #quantum_computer_backend = connect_quantum_computer(ionq_api_config, backend_name)
     quantum_instance = QuantumInstance(backend=quantum_computer_backend, **kwargs)
     return quantum_instance, quantum_computer_backend
 

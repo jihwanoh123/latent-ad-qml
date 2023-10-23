@@ -7,7 +7,13 @@ from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.circuit import ParameterVector
 from qiskit.providers import Backend
+#Deprecated
 from qiskit.providers.ibmq import IBMQBackend
+#####
+#from qiskit_ibm_provider import IBMProvider
+####
+from qiskit_ionq import IonQProvider
+####
 from qiskit.visualization import plot_circuit_layout
 from qiskit_machine_learning.kernels import QuantumKernel
 import numpy as np
@@ -34,6 +40,16 @@ class OneClassQSVM(OneClassSVM):
         Name of the designed quantum circuit. As defined in :class:`qad.algorithms.kernel_machines.feature_map_circuits`
     _backend_config: dict
         Configuration of the IBMQ backend, e.g. number of shots, qubit layout.
+        #provider = IBMQ.get_provider(
+        hub=ibmq_api_config["hub"],
+        group=ibmq_api_config["group"],
+        project=ibmq_api_config["project"],)
+        
+        or
+
+        Configuration of the IonQ backend, e.g. number of shots, qubit layout.
+        #provider = IonQProvider(ionq_api_config["token"])
+        #quantum_computer_backend = provider.get_backend("ionq_qpu.harmony")
     _quantum_instance: :class:`qiskit.utils.QuantumInstance`
         :class:`qiskit.utils.QuantumInstance` object required for execution using :class:`qiskit`.
     _quantum_kernel: :class:`qiskit_machine_learning.kernels.QuantumKernel`
@@ -71,6 +87,9 @@ class OneClassQSVM(OneClassSVM):
         self._backend_config = hpars["config"]
         self._quantum_instance, self._backend = bc.configure_quantum_instance(
             ibmq_api_config=hpars["ibmq_api_config"],
+            ####
+            #ionq_api_config=hpars["ionq_api_config"],
+            ####
             run_type=hpars["run_type"],
             backend_name=hpars["backend_name"],
             **self._backend_config,
@@ -92,7 +111,8 @@ class OneClassQSVM(OneClassSVM):
         return self._kernel_matrix_train
 
     @property
-    def backend(self) -> Union[Backend, IBMQBackend, None]:
+    def backend(self) -> Union[Backend, IBMQBackend,
+                               None]:
         """Returns the backend that the `QSVM` runs on. If it's an ideal
         simulations, it returns None.
         """
@@ -265,7 +285,7 @@ class OneClassQSVM(OneClassSVM):
         **kwargs: dict,
     ) -> QuantumCircuit:
         """Construct, save, and return the transpiled quantum kernel circuit figure.
-
+        
         Parameters
         ----------
         path : str
@@ -280,6 +300,9 @@ class OneClassQSVM(OneClassSVM):
             i.e., the circuit that will be executed on the backend.
         """
         print("\nCreating the quantum kernel circuit...")
+        ###
+        #Will the transpilation work as the same in IonQ?
+        ###
         n_params = self._quantum_kernel.feature_map.num_parameters
         feature_map_params_x = ParameterVector("x", n_params)
         feature_map_params_y = ParameterVector("y", n_params)
