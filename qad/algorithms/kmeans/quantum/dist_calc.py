@@ -1,5 +1,8 @@
 import numpy as np
 from qiskit import Aer, IBMQ, execute, assemble, transpile
+######MODIFIED############
+from qiskit_ionq import IonQProvider
+##########################
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 
 shots_n = 1000
@@ -196,8 +199,14 @@ def run_circuit(qc):
     List
         counts of measurements
     """
-    simulator = Aer.get_backend("qasm_simulator")
-    return execute(qc, backend=simulator, shots=shots_n).result().get_counts(qc)
+    ########MODIFIED###########
+    provider = IonQProvider("27pEbHsUIEAy6WtHdddSLF8UjtwlA4fR")
+    simulator_backend = provider.get_backend(device_name)
+    #Run the circuit on IonQ's platform:
+    job = simulator_backend.run(qc,shots=shots_n)
+    return job.get_counts()
+    #simulator = Aer.get_backend("qasm_simulator")
+    #return execute(qc, backend=simulator, shots=shots_n).result().get_counts(qc)
 
 
 def calc_overlap(answer, state="0"):
