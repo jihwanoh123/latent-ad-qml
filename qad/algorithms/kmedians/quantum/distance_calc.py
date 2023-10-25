@@ -2,8 +2,11 @@ import numpy as np
 from qibo.models import Circuit
 from qibo import gates
 from qad.algorithms.kmedians.util import calc_norm
-
-
+#######Modified##########
+from qiskit import QuantumCircuit
+from qiskit_ionq import IonQProvider
+import math
+########################
 def pad_input(X):
     """Adds 0s if X log2(X.dim) != round int.
 
@@ -24,7 +27,9 @@ def pad_input(X):
     return X
 
 
-def DistCalc_DI(a, b, device_name="/GPU:0", shots_n=10000):
+def DistCalc_DI(a, b, device_name='ionq_simulator',
+                #"/GPU:0",
+                shots_n=10000):
     """Distance calculation using destructive interference.
 
     Parameters
@@ -56,11 +61,23 @@ def DistCalc_DI(a, b, device_name="/GPU:0", shots_n=10000):
     n_qubits = int(np.log2(len(amplitudes)))
 
     # QIBO
-    qc = Circuit(n_qubits)
-    qc.add(gates.H(0))
-    qc.add(gates.M(0))
-    with tf.device(device_name):
-        result = qc.execute(initial_state=amplitudes, nshots=shots_n)
-    counts = result.frequencies(binary=True)
-    distance = norm * math.sqrt(2) * math.sqrt((counts["1"] / shots_n))
+    #qc = Circuit(n_qubits)
+    #qc.add(gates.H(0))
+    #qc.add(gates.M(0))
+    #with tf.device(device_name):
+    #    result = qc.execute(initial_state=amplitudes, nshots=shots_n)
+    #counts = result.frequencies(binary=True)
+    #distance = norm * math.sqrt(2) * math.sqrt((counts["1"] / shots_n))
+
+    #IonQ
+    provider = IonQProvider("27pEbHsUIEAy6WtHdddSLF8UjtwlA4fR")
+    simulator_backend = provider.get_backend(device_name)
+    qc = QuantumCircuit(n_qubits,n_qubits)
+    qc.h(0)
+    qc.measure(0,0)
+    #Run the circuit on IonQ's platform:
+    job = simulator_backend.run(qc,shots=shots_n)
+    counts = job.get_counts()
+    distance = norm * math.sqrt(2) * math.sqrt((counts["001"] / shots_n))
+    
     return distance, qc
