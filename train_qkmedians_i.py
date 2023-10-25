@@ -63,7 +63,11 @@ def train_qkmedians(
         )  # find nearest centroids
         print(f"Found cluster assignments for iteration: {i+1}")
         new_centroids = qkmed.find_centroids_GM(
-            data_train, cluster_label, clusters=k
+            data_train, cluster_label,
+            ####MODIFIED#####
+            centroids,
+            ################
+            clusters=k
         )  # find centroids
 
         loss_epoch = np.linalg.norm(centroids - new_centroids)
